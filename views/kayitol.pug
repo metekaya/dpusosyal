@@ -1,0 +1,30 @@
+extends layouts/girisyap-duzen.pug
+
+block content
+    .loginContainer
+        h1 Kayıt Ol
+        form#kayitFormu(method="post", onsubmit="event.preventDefault(); validateForm();")
+
+            p.errorMessage #{errorMessage}
+
+            input(type="text", name="ad", placeholder="Ad", value=ad required="")
+            input(type="text", name="soyad", placeholder="Soyad", value=soyad required="")
+            input(type="text", name="kullaniciad", placeholder="Kullanıcı Adı", value=kullaniciad required="")
+            input(type="email", name="email", placeholder="E Posta", value=email required="")
+            input#password(type="password", name="sifre", placeholder="Şifre", required="")
+            input#passwordConf(type="password", name="sifreOnay", placeholder="Şifre (Tekrar)", required="")
+            input(type="submit", value="Giriş Yap")
+        a(href="/girisyap") Hesabın var mı? Buradan giriş yap.
+    script.
+        var sifreAlani = document.getElementById("password")
+        var sifreOnayAlani = document.getElementById("passwordConf")
+        var form = document.getElementById("kayitFormu")
+
+        function validateForm(){
+            if(sifreAlani.value != sifreOnayAlani.value){
+                alert("Şifreler uyuşmuyor. Lütfen tekrar deneyiniz.")
+            }
+            else {
+                form.submit();
+            }
+        }

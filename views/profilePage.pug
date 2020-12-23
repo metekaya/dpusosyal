@@ -1,0 +1,65 @@
+extends layouts/ana-duzen.pug
+
+block content
+    if !profileUser 
+        h5.errorMessage Aramak istediğiniz kullanıcı adını doğru girdiğinizden emin olun.
+    else
+        script.
+            var profileUserId = '!{profileUser._id}';
+            var selectedTab = '!{selectedTab}';
+        
+        - followersCount = profileUser.followers.length
+        - followingCount = profileUser.following.length
+
+        .profileHeaderContainer
+            .coverPhotoSection
+                .coverPhotoContainer
+                    if profileUser.coverPhoto
+                        img(src=profileUser.coverPhoto, alt="Kullanıcı kapak fooğrafı")
+
+                    if profileUser._id == userLoggedIn._id
+                        button.coverPhotoButton(data-toggle="modal", data-target="#coverPhotoUploadModal")
+                            i.fas.fa-camera
+                
+                .userImageContainer
+                    img(src=profileUser.profilFoto, alt="Kullanıcı profil fotosu")
+
+                    if profileUser._id == userLoggedIn._id
+                        button.profilePictureButton(data-toggle="modal", data-target="#imageUploadModal")
+                            i.fas.fa-camera
+
+            .profileButtonsContainer
+                if profileUser._id != userLoggedIn._id
+                    a.profileButton(href=`/mesajlar/${profileUser._id}`)
+                        i.fas.fa-comment-dots
+                    
+                    -var profileUserId = profileUser._id.toString();
+                    - if (userLoggedIn.following && userLoggedIn.following.includes(profileUserId))
+                        +createFollowButton(profileUser, true)
+                    - else
+                        +createFollowButton(profileUser, false)
+                    
+            .userDetailsContainer
+                span.displayName #{profileUser.ad} #{profileUser.soyad}
+                span.kullaniciad @#{profileUser.kullaniciad}
+                span.description #{profileUser.description}
+
+                .followersContainer
+                    a(href=`/profil/${profileUser.kullaniciad}/following`)
+                        span.value #{followingCount}
+                        span Takip Edilen
+                    a(href=`/profil/${profileUser.kullaniciad}/followers`)
+                        span#followersValue.value #{followersCount}
+                        span Takipçiler
+        .tabsContainer
+            +createTab("Gönderiler", `/profil/${profileUser.kullaniciad}`, selectedTab != "yanitlar")
+            +createTab("Yanıtlar", `/profil/${profileUser.kullaniciad}/yanitlar`, selectedTab == "yanitlar")
+        .postsContainer
+
+        +createPostModals(userLoggedIn)
+        +createImageUploadModal()
+        +createCoverPhotoUploadModal()
+
+block scripts
+    script(src="/js/profile.js")
+

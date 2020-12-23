@@ -1,0 +1,479 @@
+//global
+var cropper;
+
+$("#postTextarea, #replyTextarea").keyup(event => {
+    var textbox = $(event.target);
+    var value = textbox.val().trim();
+
+    var isModal = textbox.parents(".modal").length == 1;
+    
+    var submitButton = isModal ? $("#submitReplyButton") : $("#submitPostButton");
+
+    if(submitButton.length == 0) return alert("Submit butonu bulunamadı.");
+
+    if (value == "") {
+        submitButton.prop("disabled", true);
+        return;
+    }
+
+    submitButton.prop("disabled", false);
+})
+
+$("#submitPostButton, #submitReplyButton").click(() => {
+    var button = $(event.target);
+
+    var isModal = button.parents(".modal").length == 1;   
+    var textbox = isModal ? $("#replyTextarea") : $("#postTextarea");
+
+    var data = {
+        content: textbox.val()
+    }
+
+    if (isModal){
+        var id = button.data().id;
+        if(id == null) return alert("button id is null");
+        data.replyTo = id;
+    }
+
+    $.post("/api/posts", data, postData => {
+
+        if(postData.replyTo){
+            location.reload();
+        }
+        else{
+            var html = createPostHtml(postData);
+            $(".postsContainer").prepend(html);
+            textbox.val("");
+            button.prop("disabled", true);
+        }
+    })
+})
+
+$("#replyModal").on("show.bs.modal", (event) => {
+    var button = $(event.relatedTarget);
+    var postId = getPostIdFromElement(button);
+    $("#submitReplyButton").data("id", postId);
+
+    $.get("/api/posts/" + postId, results => {
+        outputPosts(results.postData, $("#originalPostContainer"));
+    })
+})
+
+$("#replyModal").on("hidden.bs.modal", () => $("#originalPostContainer").html(""));
+
+$("#deletePostModal").on("show.bs.modal", (event) => {
+    var button = $(event.relatedTarget);
+    var postId = getPostIdFromElement(button);
+    $("#deletePostButton").data("id", postId);
+})
+
+$("#deletePostButton").click((event) => {
+    var postId = $(event.target).data("id");
+
+    $.ajax({
+        url: `/api/posts/${postId}`,
+        type: "DELETE",
+        success: (postData) =>{
+            location.reload();
+        }
+    })
+})
+
+$("#filePhoto").change(function() {
+    if(this.files && this.files[0]){
+        var reader = new FileReader();
+        reader.onload = (e) =>{
+            var image = document.getElementById("imagePreview");
+            image.src = e.target.result;
+
+            if(cropper !== undefined){
+                cropper.destroy();
+            }
+
+            cropper = new Cropper(image, {
+                aspectRatio: 1 / 1,
+                background: false
+            })
+
+        }
+        reader.readAsDataURL(this.files[0]); 
+    }
+    else{
+        console.log("nope");
+    }
+})
+
+$("#coverPhoto").change(function() {
+    if(this.files && this.files[0]){
+        var reader = new FileReader();
+        reader.onload = (e) =>{
+            var image = document.getElementById("coverPreview");
+            image.src = e.target.result;
+
+            if(cropper !== undefined){
+                cropper.destroy();
+            }
+
+            cropper = new Cropper(image, {
+                aspectRatio: 16 / 9,
+                background: false
+            })
+
+        }
+        reader.readAsDataURL(this.files[0]); 
+    }
+})
+
+$("#imageUploadButton").click(() => {
+    var canvas = cropper.getCroppedCanvas();
+
+    if(canvas == null){
+        alert("Dosyayı yüklenemiyor. Yüklediğiniz dosyanın bir resim dosyası olduğundan emin olun.")
+        return;
+    }
+
+    canvas.toBlob((blob)=>{
+        var formData = new FormData();
+        formData.append("croppedImage", blob);
+
+        $.ajax({
+            url: "/api/users/profilePicture",
+            type: "POST",
+            data: formData,
+            processData: false,
+            contentType: false,
+            success: () => location.reload()
+        })
+    })
+})
+
+$("#coverPhotoUploadButton").click(() => {
+    var canvas = cropper.getCroppedCanvas();
+
+    if(canvas == null){
+        alert("Dosyayı yüklenemiyor. Yüklediğiniz dosyanın bir resim dosyası olduğundan emin olun.")
+        return;
+    }
+
+    canvas.toBlob((blob)=>{
+        var formData = new FormData();
+        formData.append("croppedImage", blob);
+
+        $.ajax({
+            url: "/api/users/coverPhoto",
+            type: "POST",
+            data: formData,
+            processData: false,
+            contentType: false,
+            success: () => location.reload()
+        })
+    })
+})
+
+$(document).on("click", ".likeButton", (event) => { 
+    var button = $(event.target);
+    var postId = getPostIdFromElement(button);
+    
+    if(postId === undefined) return;
+
+    $.ajax({
+        url: `/api/posts/${postId}/like`,
+        type: "PUT",
+        success: (postData) =>{
+            
+            button.find("span").text(postData.likes.length || "")
+
+            if(postData.likes.includes(userLoggedIn._id)) {
+                button.addClass("active");
+            }
+            else{
+                button.removeClass("active");
+            }
+
+        }
+    })
+        
+})
+
+$(document).on("click", ".retweetButton", (event) => { 
+    var button = $(event.target);
+    var postId = getPostIdFromElement(button);
+    
+    if(postId === undefined) return;
+
+    $.ajax({
+        url: `/api/posts/${postId}/retweet`,
+        type: "POST",
+        success: (postData) =>{
+            button.find("span").text(postData.retweetUsers.length || "")
+
+            if(postData.retweetUsers.includes(userLoggedIn._id)) {
+                button.addClass("active");
+            }
+            else{
+                button.removeClass("active");
+            }
+
+        }
+    })
+        
+})
+
+$(document).on("click", ".post", (event) => { 
+    var element = $(event.target);
+    var postId = getPostIdFromElement(element);
+
+    if (postId != undefined && !element.is("button")) {
+        window.location.href = '/posts/' + postId;
+    }
+});
+
+$(document).on("click", ".followButton", (e) => {
+    var button = $(e.target);
+    var userId = button.data().kullanici;
+
+    $.ajax({
+        url: `/api/users/${userId}/follow`,
+        type: "PUT",
+        success: (data, status, xhr) => { 
+            
+            if (xhr.status == 404) {
+                alert("user not found");
+                return;
+            }
+
+            var difference = 1;
+            if(data.following && data.following.includes(userId)) {
+                button.addClass("following");
+                button.text("Takip Ediliyor");
+            }
+            else{
+                button.removeClass("following");
+                button.text("Takip Et");
+                difference = -1;
+            }
+            
+            var followersLabel = $("#followersValue");
+            if(followersLabel.length !=0){
+                var followersText = followersLabel.text();
+                followersText = parseInt(followersText);
+                followersLabel.text(followersText + difference);
+            }
+        }
+    })
+})
+
+function getPostIdFromElement(element){
+    var isRoot = element.hasClass("post");
+    var rootElement = isRoot == true ? element : element.closest(".post");
+    var postId = rootElement.data().id;
+
+    if(postId === undefined) return alert("Post ID undefined");
+
+    return postId;
+}
+
+function createPostHtml(postData, largeFont = false){
+    
+    if(postData == null) return alert("post object is null");
+
+    var isRetweet = postData.retweetData != undefined;
+    var retweetedBy = isRetweet ? postData.postedBy.kullaniciad : null;
+    postData = isRetweet ? postData.retweetData : postData;
+
+    var postedBy = postData.postedBy;
+
+    if(postedBy._id == undefined){
+        return console.log("User object not populated");    
+    }
+
+    var displayName = postedBy.ad + " " + postedBy.soyad;
+    var tarihDamgasi = timeDifference(new Date(), new Date(postData.createdAt));
+    
+    var likeButtonActiveClass = postData.likes.includes(userLoggedIn._id) ? "active" : "";
+    var retweetButtonActiveClass = postData.retweetUsers.includes(userLoggedIn._id) ? "active" : "";
+    var largeFontClass = largeFont ? "largeFont" :"";
+
+    var retweetText = '';
+    if(isRetweet){
+        retweetText =  `<span>
+                        <i class='fas fa-retweet'></i>
+                        <a href='/profil/${retweetedBy}'>@${retweetedBy}</a> tarafından alıntılandı
+                        </span>`
+    }
+
+    var replyFlag = "";
+    if(postData.replyTo && postData.replyTo._id) {
+
+        if(!postData.replyTo._id){
+            return alert("reply to is not populated")
+        }
+        else if(!postData.replyTo.postedBy._id){
+            return alert("posted by is not populated")
+        }
+
+        var replyToUsername = postData.replyTo.postedBy.kullaniciad;
+        replyFlag = `<div class = 'replyFlag'>
+                         <a href='/profil/${replyToUsername}'>@${replyToUsername}</a> kullanıcısına yanıt olarak
+                    </div>`;
+        
+    }
+
+    var buttons = "";
+    if (postData.postedBy._id == userLoggedIn._id){
+        buttons = `<button class='deleteButton' data-id="${postData._id}" data-toggle="modal" data-target="#deletePostModal"><i class='fas fa-times'></i></button>`;
+    }
+
+    return `<div class='post ${largeFontClass}' data-id='${postData._id}'>
+                <div class = 'postActionContainer'>
+                    ${retweetText}
+                </div>
+                <div class='mainContentContainer'>
+                    <div class='userImageContainer'>
+                        <img src='${postedBy.profilFoto}'>
+                    </div>
+                    <div class='postContentContainer'>
+                        <div class='header'>
+                            <a class = 'displayName' href='/profil/${postedBy.kullaniciad}'>${displayName}</a>
+                            <span class='kullaniciAdi'>@${postedBy.kullaniciad}</span>
+                            <span class='tarih'>${tarihDamgasi}</span>
+                            ${buttons}
+                        </div>
+                        ${replyFlag}
+                        <div class='postBody'>
+                            <span>${postData.content}</span>
+                        </div>
+                        <div class='postFooter'>
+                            <div class='postButtonContainer'>
+                                <button data-toggle='modal' data-target='#replyModal'>
+                                    <i class='far fa-comment'></i>
+                                </button>
+                            </div>
+                            <div class='postButtonContainer green'>
+                                <button class ='retweetButton ${retweetButtonActiveClass}'>
+                                    <i class='fas fa-retweet'></i>
+                                    <span>${postData.retweetUsers.length || ""}</span>
+                                </button>
+                            </div>
+                            <div class='postButtonContainer blue'>
+                                <button class='likeButton ${likeButtonActiveClass}'>
+                                    <i class='far fa-thumbs-up'></i>
+                                    <span>${postData.likes.length || ""}</span>
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>`;
+}
+
+function timeDifference(current, previous) {
+
+    var msPerMinute = 60 * 1000;
+    var msPerHour = msPerMinute * 60;
+    var msPerDay = msPerHour * 24;
+    var msPerMonth = msPerDay * 30;
+    var msPerYear = msPerDay * 365;
+
+    var elapsed = current - previous;
+
+    if (elapsed < msPerMinute) {
+        if(elapsed/1000 < 30) return "Az önce"
+         return Math.round(elapsed/1000) + ' saniye önce.';   
+    }
+
+    else if (elapsed < msPerHour) {
+         return Math.round(elapsed/msPerMinute) + ' dakika önce.';   
+    }
+
+    else if (elapsed < msPerDay ) {
+         return Math.round(elapsed/msPerHour ) + ' saat önce.';   
+    }
+
+    else if (elapsed < msPerMonth) {
+        return Math.round(elapsed/msPerDay) + ' gün önce.';   
+    }
+
+    else if (elapsed < msPerYear) {
+        return Math.round(elapsed/msPerMonth) + ' ay önce.';   
+    }
+
+    else {
+        return Math.round(elapsed/msPerYear ) + ' yıl önce.';   
+    }
+}
+
+function outputPosts(results, container){
+    container.html("");
+
+    if(!Array.isArray(results)) {
+        results = [results];
+    }
+    
+    results.forEach(result => {
+        var html = createPostHtml(result)
+        container.append(html);
+    });
+
+    if (results.length == 0){
+        container.append("<span class = 'noResults'>Gösterilecek bir şey yok.</span>")
+    }
+}
+
+function outputPostsWithReplies(results, container){
+    container.html("");
+
+    if(results.replyTo !== undefined && results.replyTo._id !== undefined){
+        var html = createPostHtml(results.replyTo)
+        container.append(html);
+    }
+
+    var mainPostHtml = createPostHtml(results.postData, true)
+        container.append(mainPostHtml);
+
+    results.replies.forEach(result => {
+        var html = createPostHtml(result)
+        container.append(html);
+    });
+}
+
+function outputUsers(results, container){
+    container.html("");
+
+    results.forEach(result =>{
+        var html = createUserHtml(result, true)
+        container.append(html);
+    });
+
+    if(results.length == 0) {
+        container.append("<span class ='noResults'>Sonuç Yok</span>")
+    }
+}
+
+function createUserHtml(userData, showFollowButton){
+
+    var isim = userData.ad + " " + userData.soyad;
+    var isFollowing = userLoggedIn.following && userLoggedIn.following.includes(userData._id);
+    var text = isFollowing ? "Takip Ediliyor" : "Takip Et"
+    var buttonClass = isFollowing ? "followButton following" : "followButton"
+
+    var followButton = "";
+    if (showFollowButton && userLoggedIn._id != userData._id) {
+        followButton = `<div class='followButtonContainer'>
+                            <button class='${buttonClass}' data-kullanici='${userData._id}'>${text}</button>
+                        </div>`
+    }
+
+    return `<div class='user'>
+                <div class='userImageContainer'>
+                    <img src = '${userData.profilFoto}'>
+                </div>
+                <div class = 'userDetailsContainer'>
+                    <div class = 'header'>
+                        <a href='/profil/${userData.kullaniciad}'>${isim}</a>
+                        <span class='kullaniciAdi'>@${userData.kullaniciad}</span>
+                    </div>
+                </div>
+                ${followButton}    
+            </div>`
+}

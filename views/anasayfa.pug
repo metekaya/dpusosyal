@@ -1,0 +1,11 @@
+extends layouts/ana-duzen.pug
+
+block content
+    +createPostForm(userLoggedIn)
+    .postsContainer
+
+    +createPostModals(userLoggedIn)
+
+block scripts
+    script(src="/js/anasayfa.js")
+

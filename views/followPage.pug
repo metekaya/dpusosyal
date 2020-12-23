@@ -1,0 +1,19 @@
+extends layouts/ana-duzen.pug
+
+block content
+    if !profileUser 
+        h5.errorMessage Aramak istediğiniz kullanıcı adını doğru girdiğinizden emin olun.
+    else
+        script.
+            var profileUserId = '!{profileUser._id}';
+            var selectedTab = '!{selectedTab}';
+
+        .tabsContainer
+            +createTab("Takip Edilen", `/profil/${profileUser.kullaniciad}/following`, selectedTab != "followers")
+            +createTab("Takipçiler", `/profil/${profileUser.kullaniciad}/followers`, selectedTab == "followers")
+        
+        .resultsContainer
+        
+block scripts
+    script(src="/js/followPage.js")
+

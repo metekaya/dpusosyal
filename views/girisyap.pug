@@ -1,0 +1,13 @@
+extends layouts/girisyap-duzen.pug
+
+block content
+    .loginContainer
+        h1 Giriş Yap
+        form(method="post")
+
+            p.errorMessage #{errorMessage}
+
+            input(type="text", name="kullaniciAdiGir", placeholder="Kullanıcı adı veya E-posta", value=kullaniciAdiGir required="")
+            input(type="password", name="sifreGir", placeholder="Şifre", required="")
+            input(type="submit", value="Giriş Yap")
+        a(href="/kayitol") Hesaba mı ihtiyacın var? Buradan kayıt ol.

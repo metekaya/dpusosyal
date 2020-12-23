@@ -1,0 +1,89 @@
+mixin createPostForm(userLoggedIn)
+    .postFormContainer 
+        .userImageContainer
+            img(src=userLoggedIn.profilFoto, alt="Kullanıcı'nın profil fotoğrafı")
+        .textareaContainer
+            textarea#postTextarea(placeholder="Neler oluyor?")
+            .buttonsContainer
+                button#submitPostButton(disabled="") Paylaş
+
+mixin createReplyModal(userLoggedIn)
+    #replyModal.modal.fade(tabindex='-1', role='dialog', aria-labelledby='replyModalLabel', aria-hidden='true')
+        .modal-dialog(role='document')
+            .modal-content
+                .modal-header
+                    h5#replyModalLabel.modal-title Yanıtla
+                    button.close(type='button', data-dismiss='modal', aria-label='Close')
+                    span(aria-hidden='true') &times;
+                .modal-body
+                    #originalPostContainer
+                    .postFormContainer 
+                        .userImageContainer
+                            img(src=userLoggedIn.profilFoto, alt="Kullanıcı'nın profil fotoğrafı")
+                        .textareaContainer
+                            textarea#replyTextarea(placeholder="Neler oluyor?")
+                .modal-footer
+                    button.btn.btn-secondary(type='button', data-dismiss='modal') Kapat
+                    button#submitReplyButton.btn.btn-success(type='button', disabled="") Yanıtla
+
+mixin createDeletePostModal()
+    #deletePostModal.modal.fade(tabindex='-1', role='dialog', aria-labelledby='deletePostModalLabel', aria-hidden='true')
+        .modal-dialog(role='document')
+            .modal-content
+                .modal-header
+                    h5#deletePostModalLabel.modal-title Gönderiyi silmek istediğinizden emin misiniz?
+                    button.close(type='button', data-dismiss='modal', aria-label='Close')
+                    span(aria-hidden='true') &times;
+                .modal-body
+                    p Bu gönderi silinecek.
+                .modal-footer
+                    button.btn.btn-secondary(type='button', data-dismiss='modal') Kapat
+                    button#deletePostButton.btn.btn-danger(type='button') Sil
+
+mixin createPostModals(userLoggedIn)
+    +createReplyModal(userLoggedIn)
+    +createDeletePostModal()
+
+mixin createFollowButton(kullanici, isFollowing)
+    - text = isFollowing ? "Takip Ediliyor" : "Takip Et"
+    - buttonClass = isFollowing ? "followButton following" : "followButton"
+    button(class=buttonClass, data-kullanici=kullanici._id) #{text}
+
+mixin createTab(ad, href, isSelected)
+    - className = isSelected ? "tab active": "tab"
+    a(href=href, class=className)
+        span #{ad}
+
+mixin createImageUploadModal()
+    #imageUploadModal.modal.fade(tabindex='-1', role='dialog', aria-labelledby='imageUploadModalLabel', aria-hidden='true')
+        .modal-dialog(role='document')
+            .modal-content
+                .modal-header
+                    h5#imageUploadModalLabel.modal-title Yeni profil fotoğrafı yükle
+                    button.close(type='button', data-dismiss='modal', aria-label='Close')
+                    span(aria-hidden='true') &times;
+                .modal-body
+                    input#filePhoto(type="file", name="filePhoto")
+
+                    .imagePreviewContainer
+                        img#imagePreview
+                .modal-footer
+                    button.btn.btn-secondary(type='button', data-dismiss='modal') Vazgeç
+                    button#imageUploadButton.btn.btn-primary(type='button') Kaydet
+
+mixin createCoverPhotoUploadModal()
+    #coverPhotoUploadModal.modal.fade(tabindex='-1', role='dialog', aria-labelledby='coverPhotoUploadModalLabel', aria-hidden='true')
+        .modal-dialog(role='document')
+            .modal-content
+                .modal-header
+                    h5#coverPhotoUploadModalLabel.modal-title Yeni kapak fotoğrafı yükle
+                    button.close(type='button', data-dismiss='modal', aria-label='Close')
+                    span(aria-hidden='true') &times;
+                .modal-body
+                    input#coverPhoto(type="file", name="filePhoto")
+
+                    .imagePreviewContainer
+                        img#coverPreview
+                .modal-footer
+                    button.btn.btn-secondary(type='button', data-dismiss='modal') Vazgeç
+                    button#coverPhotoUploadButton.btn.btn-primary(type='button') Kaydet

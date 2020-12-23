@@ -1,0 +1,19 @@
+extends layouts/ana-duzen.pug
+
+block content
+
+    .searchBarContainer
+        i.fas.fa-search
+        input#searchBox(type="text", name="searchBox", data-search=selectedTab, placeholder="Gönderi veya kullanıcı aramak için buraya yazın.")
+
+    .tabsContainer
+        +createTab("Gönderiler", `/arama/posts`, selectedTab != "users")
+        +createTab("Kullanıcılar", `/arama/users`, selectedTab == "users")
+
+    .resultsContainer
+
+    +createPostModals(userLoggedIn)
+
+block scripts
+    script(src="/js/search.js")
+
